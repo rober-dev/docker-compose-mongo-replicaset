@@ -1,0 +1,86 @@
+version: "3"
+services:
+  mongo1:
+    hostname: mongo1
+    container_name: localmongo1
+    image: mongo:latest
+    expose:
+      - 27011
+    ports:
+      - 27011:27011
+    restart: always
+    entrypoint:
+      [
+        "/usr/bin/mongod",
+        "--port",
+        "27011",
+        "--bind_ip_all",
+        "--replSet",
+        "rs0",
+      ]
+    volumes:
+      - "./setup-mongo.sh:/scripts/setup-mongo.sh"
+      - "./mongodb-data:/data/db"
+    networks:
+      - mongodb-rs-network
+  mongo2:
+    hostname: mongo2
+    container_name: localmongo2
+    image: mongo:latest
+    expose:
+      - 27012
+    ports:
+      - 27012:27012
+    restart: always
+    entrypoint:
+      [
+        "/usr/bin/mongod",
+        "--port",
+        "27012",
+        "--bind_ip_all",
+        "--replSet",
+        "rs0",
+      ]
+    networks:
+      - mongodb-rs-network
+  mongo3:
+    hostname: mongo3
+    container_name: localmongo3
+    image: mongo:latest
+    expose:
+      - 27013
+    ports:
+      - 27013:27013
+    restart: always
+    entrypoint:
+      [
+        "/usr/bin/mongod",
+        "--port",
+        "27013",
+        "--bind_ip_all",
+        "--replSet",
+        "rs0",
+      ]
+    networks:
+      - mongodb-rs-network
+
+  web-app:
+    container_name: mongodb-rs-webapp
+    image: mongodb-rs-webapp
+    build: "./web-app/"
+    ports:
+      - 3000:3000
+    environment:
+      PORT: 3000
+      MONGODB_URL: mongodb://mongo1:27011,mongo2:27012,mongo3:27013/mongors-sample?replicaSet=rs0
+    depends_on:
+      - mongo1
+      - mongo2
+      - mongo3
+    networks:
+      - mongodb-rs-network
+    restart: unless-stopped
+
+networks:
+  mongodb-rs-network:
+    driver: bridge
